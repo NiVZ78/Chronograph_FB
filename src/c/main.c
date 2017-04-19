@@ -34,27 +34,69 @@ static uint8_t text_height = 20;
 static uint8_t date_text_height = 14;
 
 // GColor to hold the radial and text colors
-static GColor second_color;
-static GColor minute_color;
-static GColor hour_color;
-static GColor second_text_color;
-static GColor date_text_color;
+
+#ifdef PBL_COLOR
+static int sec_color = 0x55AAFF; // Picton Blue
+static int min_color = 0xFFFF00; // Yellow
+static int hr_color = 0xFF0000; // Red
+static int sec_text_color = 0x555555; // Dark Gray
+static int date_color = 0xFFFFFF; // White
+
+static GColor second_color = {.argb = GColorPictonBlueARGB8};
+static GColor minute_color = {.argb = GColorYellowARGB8};
+static GColor hour_color = {.argb = GColorRedARGB8};
+static GColor second_text_color = {.argb = GColorDarkGrayARGB8};
+static GColor date_text_color = {.argb = GColorWhiteARGB8};
+#else
+static int sec_color = 0xFFFFFF; // White
+static int min_color = 0xFFFFFF; // White
+static int hr_color = 0xFFFFFF; // White
+static int sec_text_color = 0xFFFFFF; // White
+static int date_color = 0xFFFFFF; // White
+
+static GColor second_color = {.argb = GColorWhiteARGB8};
+static GColor minute_color = {.argb = GColorWhiteARGB8};
+static GColor hour_color = {.argb = GColorWhiteARGB8};
+static GColor second_text_color = {.argb = GColorWhiteARGB8};
+static GColor date_text_color = {.argb = GColorWhiteARGB8};
+#endif
+
+//Date Format
+static int dateFormat;
+
+
+void apply_color(){   
+  #ifdef PBL_COLOR
+  second_color = GColorFromHEX(sec_color);
+  minute_color = GColorFromHEX(min_color);
+  hour_color = GColorFromHEX(hr_color);
+  second_text_color = GColorFromHEX(sec_text_color);
+  date_text_color = GColorFromHEX(date_color);
+  #else
+  second_color = GColorWhite;
+  minute_color = GColorWhite;
+  hour_color = GColorWhite;
+  second_text_color = GColorWhite;
+  date_text_color = GColorWhite;
+  #endif
+};
 
 
 // Function to update the bound sizes when the unobstructed area changes
 void prv_unobstructed_change(AnimationProgress progress, void *context) {
   
   // Get the full screen bounds
-  GRect bounds = layer_get_frame(s_main_window_layer);
+ // GRect bounds = layer_get_frame(s_main_window_layer);
   
   // Get the unobstructed screen bounds
-  GRect unobstructed_bounds = layer_get_unobstructed_bounds(s_main_window_layer);
-  
+ // GRect unobstructed_bounds = layer_get_unobstructed_bounds(s_main_window_layer);
+  GRect bounds = layer_get_unobstructed_bounds(s_main_window_layer);
+  /*
   // Calculate the offset based on half of the difference of the bounds
   uint8_t offset = (bounds.size.h - unobstructed_bounds.size.h)/2;
   
   // Adjust the y position of the bounds
-  bounds.origin.y -= offset;
+  bounds.origin.y -= offset;*/
     
   // Calculate the shortest side
   shortest_side = bounds.size.w < bounds.size.h ? bounds.size.w : bounds.size.h;
@@ -115,7 +157,13 @@ static void canvas_update_proc(Layer *this_layer, GContext *ctx) {
   strftime(seconds, sizeof(seconds), "%S", tick_time);
   strftime(minutes, sizeof(minutes), "%M", tick_time);
   strftime(hours, sizeof(hours), "%H", tick_time);
-  strftime(date, sizeof(date), "%d/%m", tick_time);
+ /* if(dateFormat == 0){
+    strftime(date, sizeof(date), "%d/%m", tick_time);
+  } else if(dateFormat == 1) {
+    strftime(date, sizeof(date), "%m/%d", tick_time);
+  }*/
+  
+  dateFormat == 0 ? strftime(date, sizeof(date), "%d/%m", tick_time) : strftime(date, sizeof(date), "%m/%d", tick_time);
 
   // Integer for the radial loops
   uint8_t i;
@@ -204,11 +252,11 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed){
 
 static void main_window_load(Window *window) {
 
-  second_color = PBL_IF_COLOR_ELSE(GColorPictonBlue, GColorWhite);
+ /* second_color = PBL_IF_COLOR_ELSE(GColorPictonBlue, GColorWhite);
   minute_color = PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite);
   hour_color = PBL_IF_COLOR_ELSE(GColorRed, GColorWhite);
   second_text_color = PBL_IF_COLOR_ELSE(GColorDarkGray, GColorWhite);
-  date_text_color = GColorWhite;
+  date_text_color = GColorWhite;*/
 
 	// get the main window layer
 	s_main_window_layer = window_get_root_layer(s_main_window);
@@ -255,6 +303,80 @@ static void main_window_unload(Window *window) {
 	
 }
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+//                                                   DICT FOR CLAY CONFIGURATION
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+
+static void inbox_received_callback(DictionaryIterator *iter, void *context) {	
+  // Read first item
+  Tuple *dformat = dict_find(iter, MESSAGE_KEY_DATE_FORMAT);
+  Tuple *sec = dict_find(iter, MESSAGE_KEY_SECOND_COLOR);
+  Tuple *min = dict_find(iter, MESSAGE_KEY_MINUTE_COLOR);
+  Tuple *hr = dict_find(iter, MESSAGE_KEY_HOUR_COLOR);
+  Tuple *stext = dict_find(iter, MESSAGE_KEY_SECOND_TEXT_COLOR);
+  Tuple *dtext = dict_find(iter, MESSAGE_KEY_DATE_TEXT_COLOR);
+   
+  if(dformat) {
+    dateFormat = atoi(dformat->value->cstring);
+  }      
+      
+  if(sec) {
+    #ifdef PBL_COLOR
+    sec_color = sec->value->int32; apply_color();
+    #else
+    apply_color(); 
+    #endif
+  }
+
+  if(min) {
+    #ifdef PBL_COLOR
+    min_color = min->value->int32; apply_color();
+    #else
+    apply_color(); 
+    #endif
+  }
+  
+  if(hr) {
+    #ifdef PBL_COLOR
+    hr_color = hr->value->int32; apply_color();
+    #else
+    apply_color(); 
+    #endif
+  }
+  
+  if(stext) {
+    #ifdef PBL_COLOR
+    sec_text_color = stext->value->int32; apply_color();
+    #else
+    apply_color(); 
+    #endif
+  }
+  
+  if(dtext) {
+    #ifdef PBL_COLOR
+    date_color = dtext->value->int32; apply_color();
+    #else
+    apply_color(); 
+    #endif
+  }
+
+    layer_mark_dirty(s_main_window_layer); 
+}	
+	
+	
+static void inbox_dropped_callback(AppMessageResult reason, void *context) {	
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");	
+}	
+	
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {	
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");	
+}	
+	
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {	
+  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");	
+}	
+
+
 
 static void init(void) {
 
@@ -269,12 +391,35 @@ static void init(void) {
 
 	// show the window on screen
 	window_stack_push(s_main_window, true);
+  
+  // Register callbacks	
+  app_message_register_inbox_received(inbox_received_callback);	
+  app_message_register_inbox_dropped(inbox_dropped_callback);	
+  app_message_register_outbox_failed(outbox_failed_callback);	
+  app_message_register_outbox_sent(outbox_sent_callback);	
+  	
+  // Open AppMessage	
+  app_message_open(256, 256);
+  
+  sec_color = persist_exists(MESSAGE_KEY_SECOND_COLOR) ? persist_read_int(MESSAGE_KEY_SECOND_COLOR): 0x55AAFF;	apply_color();		
+  min_color = persist_exists(MESSAGE_KEY_MINUTE_COLOR) ? persist_read_int(MESSAGE_KEY_MINUTE_COLOR): 0xFFFF00;	apply_color();	
+  hr_color = persist_exists(MESSAGE_KEY_HOUR_COLOR) ? persist_read_int(MESSAGE_KEY_HOUR_COLOR): 0xFF0000;	apply_color();
+  sec_text_color = persist_exists(MESSAGE_KEY_SECOND_TEXT_COLOR) ? persist_read_int(MESSAGE_KEY_SECOND_TEXT_COLOR): 0x555555;	apply_color();
+  date_color = persist_exists(MESSAGE_KEY_DATE_TEXT_COLOR) ? persist_read_int(MESSAGE_KEY_DATE_TEXT_COLOR): 0xFFFFFF;	apply_color();
+  dateFormat = persist_exists(MESSAGE_KEY_DATE_FORMAT) ? persist_read_int(MESSAGE_KEY_DATE_FORMAT): 0;
 
 }
 
-
 static void deinit(void) {
 
+  persist_write_int(MESSAGE_KEY_SECOND_COLOR, sec_color);	
+  persist_write_int(MESSAGE_KEY_MINUTE_COLOR, min_color);	
+  persist_write_int(MESSAGE_KEY_HOUR_COLOR, hr_color);
+  persist_write_int(MESSAGE_KEY_SECOND_TEXT_COLOR, sec_text_color);
+  persist_write_int(MESSAGE_KEY_DATE_TEXT_COLOR, date_color);
+  persist_write_int(MESSAGE_KEY_DATE_FORMAT, dateFormat);
+  
+  
 	// Destroy the main window
 	window_destroy(s_main_window);
 

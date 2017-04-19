@@ -1,12 +1,24 @@
 {
     "author": "NiVZ",
-    "dependencies": {},
+    "dependencies": {
+        "pebble-clay": "^1.0.3"
+    },
     "keywords": [],
     "name": "chronograph-fb",
     "pebble": {
+        "capabilities": [
+            "configurable"
+        ],
         "displayName": "Chronograph FB",
         "enableMultiJS": true,
-        "messageKeys": [],
+        "messageKeys": [
+            "SECOND_COLOR",
+            "MINUTE_COLOR",
+            "HOUR_COLOR",
+            "SECOND_TEXT_COLOR",
+            "DATE_TEXT_COLOR",
+            "DATE_FORMAT"
+        ],
         "projectType": "native",
         "resources": {
             "media": []
